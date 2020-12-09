@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  sysmon:
+    image: mtik00/pysysmon:latest
+    restart: unless-stopped
+    environment: 
+      - "INFLUXDB_HOST=$INFLUXDB_HOST"
+      - "INFLUXDB_PORT=$INFLUXDB_PORT"
+      - "INFLUXDB_PASSWORD=$INFLUXDB_PASSWORD"
+      - "INFLUXDB_DBNAME=$INFLUXDB_DBNAME"
+    logging:
+      options:
+        max-size: 20m
