@@ -1,4 +1,4 @@
-FROM python:3.8-buster as compile
+FROM python:3.9.1-buster as compile
 
 # Build our app inside a virtual environment so we can copy
 # it out later.
@@ -25,7 +25,7 @@ RUN sed -i '1s|.*python$|#!/usr/bin/env python|' /tmp/app-env/bin/*
 #     echo "alias ll='ls -alh'" >> /root/.bashrc
 
 ###############################################################################
-FROM python:3.8-slim-buster
+FROM python:3.9.1-slim-buster
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
