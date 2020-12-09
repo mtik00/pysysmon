@@ -46,7 +46,7 @@ RUN useradd -ms /bin/bash sysmon-user \
 WORKDIR /usr/src/app
 
 COPY --from=compile --chown=sysmon-user:sysmon-user /tmp/app-env .venv
-COPY --chown=sysmon-user:sysmon-user ./src/app.py ./app.py
+COPY --chown=sysmon-user:sysmon-user ./src .
 
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
 CMD [ "python", "app.py" ]
