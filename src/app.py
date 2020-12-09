@@ -45,14 +45,23 @@ def get_cpu():
         "percent": psutil.cpu_percent(),
     }
 
+
 def get_temperature():
     result = psutil.sensors_temperatures()
     json_body = {}
 
     for temp_description, items in result.items():
-        values = [{"label": value.label, "current": value.current, "high": value.high, "critical": value.critical} for value in items]
+        values = [
+            {
+                "label": value.label,
+                "current": value.current,
+                "high": value.high,
+                "critical": value.critical,
+            }
+            for value in items
+        ]
         json_body[temp_description] = values
-    
+
     return json_body
 
 
@@ -84,9 +93,36 @@ def post_metrics(client: InfluxDBClient, metrics: dict, hostname: str):
     client.write_points(json_body)
 
 
+class InfluxDBVars:
+    def __init__(self):
+        self.hostname = os.environ.get("INFLUXDB_HOST") or None
+        self.port = os.environ.get("INFLUXDB_PORT") or None
+        self.username = os.environ.get("INFLUXDB_USERNAME") or None
+        self.password = os.environ.get("INFLUXDB_PASSWORD") or None
+        self.dbname = os.environ.get("INFLUXDB_DBNAME") or None
+
+    def __str__(self):
+        return f"<InfluxDBVars hostname={self.hostname} port={self.port} username={self.username} password={'***' if self.password else self.password} dbname={self.dbname}>"
+
+    def valid(self):
+        """Returns whether or not we have enough variables defined to attempt to make a connection."""
+        return self.hostname and self.port and self.dbname
+
+
 class DBClient:
-    def __init__(self, debug=False):
+    def __init__(
+        self,
+        db_vars: InfluxDBVars,
+        debug: bool = False,
+    ):
         self.debug = debug
+
+        if (not self.debug) and (not db_vars.valid()):
+            print(str(db_vars))
+            print(
+                "WARNING: InfluxDB connection vars are not valid; enabling debug mode"
+            )
+            self.debug = True
 
         if not self.debug:
             self.client = InfluxDBClient(
@@ -107,7 +143,9 @@ class DBClient:
 
 def main():
     args = parse_arguments(sys.argv[1:])
-    client = DBClient(args.debug)
+
+    db_vars = InfluxDBVars()
+    client = DBClient(db_vars, args.debug)
 
     hostname = APP_HOSTNAME or socket.gethostname()
 
