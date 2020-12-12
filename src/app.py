@@ -26,6 +26,13 @@ def parse_arguments(argv=sys.argv):
         action="store_true",
         default=False,
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        help="More verbose output",
+        action="store_true",
+        default=False,
+    )
 
     return parser.parse_args(sys.argv[1:])
 
@@ -161,7 +168,7 @@ def main():
         metrics = get_metics()
         post_metrics(client, metrics, hostname)
 
-        if not args.debug:
+        if args.verbose and (not args.debug):
             print(".", end="", flush=True)
 
         time.sleep(10)
