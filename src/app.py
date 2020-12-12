@@ -47,20 +47,24 @@ def get_cpu():
 
 
 def get_temperature():
+    """
+    Returns the sensors temperature data.
+
+    This function flattens the measurements for ingestion by InfluxDB.
+
+    See here for an example:
+        https://psutil.readthedocs.io/en/latest/#psutil.sensors_temperatures
+    """
     result = psutil.sensors_temperatures()
     json_body = {}
 
-    for temp_description, items in result.items():
-        values = [
-            {
-                "label": value.label,
-                "current": value.current,
-                "high": value.high,
-                "critical": value.critical,
-            }
-            for value in items
-        ]
-        json_body[temp_description] = values
+    for sensor_name, measurements in result.items():
+        for index, measurement in enumerate(measurements):
+            measurement_label = (
+                f"_{measurement.label.replace(' ', '_')}" if measurement.label else ""
+            )
+            measure_name = f"{sensor_name}{measurement_label}_{index}_current"
+            json_body[measure_name] = measurement.current
 
     return json_body
 
@@ -86,10 +90,14 @@ def post_metrics(client: InfluxDBClient, metrics: dict, hostname: str):
                 "cpu_count": metrics["cpu"]["count"] or None,
                 "cpu_frequency": metrics["cpu"]["frequency"] or None,
                 "cpu_percent": metrics["cpu"]["percent"] or None,
-                "temperatures": metrics["temperature"] or None,
             },
         },
     ]
+
+    # Temperatures are stored as nested structures, so we need to add them separate.
+    for name, measurement in metrics["temperature"].items():
+        json_body[0]["fields"][name] = measurement
+
     client.write_points(json_body)
 
 
