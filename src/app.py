@@ -81,12 +81,12 @@ def post_metrics(client: InfluxDBClient, metrics: dict, hostname: str):
                 "hostname": hostname,
             },
             "fields": {
-                "memory_total": metrics["memory"]["total"],
-                "memory_used": metrics["memory"]["used"],
-                "cpu_count": metrics["cpu"]["count"],
-                "cpu_frequency": metrics["cpu"]["frequency"],
-                "cpu_percent": metrics["cpu"]["percent"],
-                "temperatures": metrics["temperature"],
+                "memory_total": metrics["memory"]["total"] or None,
+                "memory_used": metrics["memory"]["used"] or None,
+                "cpu_count": metrics["cpu"]["count"] or None,
+                "cpu_frequency": metrics["cpu"]["frequency"] or None,
+                "cpu_percent": metrics["cpu"]["percent"] or None,
+                "temperatures": metrics["temperature"] or None,
             },
         },
     ]
