@@ -38,7 +38,7 @@ def parse_arguments(argv=sys.argv):
     parser.add_argument(
         "-n",
         "--no-db",
-        help="Don't connect to an Influx database.  Should be used with --debug.",
+        help="Don't connect to an Influx database.  Will automatically set --debug.",
         action="store_true",
         default=False,
     )
@@ -125,6 +125,10 @@ def post_metrics(client: InfluxDBClient, metrics: dict, hostname: str):
     client.write_points(json_body)
 
 
+def to_bool(var):
+    return str(var).lower() in ["1", "y", "yes"]
+
+
 class InfluxDBVars:
     def __init__(self):
         self.hostname = os.environ.get("INFLUXDB_HOST") or None
@@ -132,9 +136,14 @@ class InfluxDBVars:
         self.username = os.environ.get("INFLUXDB_USERNAME") or None
         self.password = os.environ.get("INFLUXDB_PASSWORD") or None
         self.dbname = os.environ.get("INFLUXDB_DBNAME") or None
+        self.ssl = to_bool(os.environ.get("INFLUXDB_SSL") or None)
 
     def __str__(self):
-        return f"<InfluxDBVars hostname={self.hostname} port={self.port} username={self.username} password={'***' if self.password else self.password} dbname={self.dbname}>"
+        return (
+            f"<InfluxDBVars hostname={self.hostname} port={self.port} "
+            f"username={self.username} "
+            f"password={'***' if self.password else self.password} "
+            f"dbname={self.dbname} ssl={self.ssl}>")
 
     def valid(self):
         """Returns whether or not we have enough variables defined to attempt to make a connection."""
@@ -151,18 +160,18 @@ class DBClient:
 
         if self.connect and (not db_vars.valid()):
             logger.warn(str(db_vars))
-            logger.error("InfluxDB connection vars are not valid; enabling debug mode"            )
+            logger.error("InfluxDB connection vars are not valid; enabling debug mode")
             self.connect = True
         elif not self.connect:
             logger.debug("not connecting to database")
 
         if self.connect:
             self.client = InfluxDBClient(
-                host=INFLUXDB_HOST,
-                port=INFLUXDB_PORT,
-                username=INFLUXDB_USERNAME,
-                password=INFLUXDB_PASSWORD,
-                ssl=False,
+                host=db_vars.hostname,
+                port=db_vars.port,
+                username=db_vars.username,
+                password=db_vars.password,
+                ssl=db_vars.ssl,
             )
             self.client.switch_database(INFLUXDB_DBNAME)
 
@@ -177,7 +186,8 @@ def main():
     initialize_logger()
     args = parse_arguments(sys.argv[1:])
 
-    if args.debug:
+    debug = args.debug or args.no_db
+    if debug:
         logger.setLevel(logging.DEBUG)
 
     connect = not args.no_db
