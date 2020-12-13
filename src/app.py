@@ -46,10 +46,15 @@ def get_memory():
 
 
 def get_cpu():
+    load_1, load_5, load_15 = psutil.getloadavg()
+
     return {
         "count": psutil.cpu_count(),
         "frequency": psutil.cpu_freq().current,
         "percent": psutil.cpu_percent(),
+        "load_1": load_1,
+        "load_5": load_5,
+        "load_15": load_15,
     }
 
 
@@ -97,6 +102,9 @@ def post_metrics(client: InfluxDBClient, metrics: dict, hostname: str):
                 "cpu_count": metrics["cpu"]["count"] or None,
                 "cpu_frequency": metrics["cpu"]["frequency"] or None,
                 "cpu_percent": metrics["cpu"]["percent"] or None,
+                "cpu_load_1": metrics["cpu"]["load_1"] or None,
+                "cpu_load_5": metrics["cpu"]["load_5"] or None,
+                "cpu_load_15": metrics["cpu"]["load_15"] or None,
             },
         },
     ]
