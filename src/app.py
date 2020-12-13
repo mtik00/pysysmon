@@ -17,6 +17,9 @@ INFLUXDB_USERNAME = os.environ.get("INFLUXDB_USERNAME")
 INFLUXDB_PASSWORD = os.environ.get("INFLUXDB_PASSWORD")
 INFLUXDB_DBNAME = os.environ.get("INFLUXDB_DBNAME")
 
+# comma-separate list of disk paths.  E.g. "/,/dev"
+APP_DISK_USAGE_PATHS = os.getenv("APP_DISK_USAGE_PATHS") or "/"
+
 logger = logging.getLogger()
 
 
@@ -47,9 +50,23 @@ def parse_arguments(argv=sys.argv):
         "--period",
         help="Period for taking measurements, in seconds.  Default: 10",
         type=int,
-        default=10
+        default=10,
     )
     return parser.parse_args(sys.argv[1:])
+
+
+def get_disk_usage():
+    result = {}
+
+    for path in APP_DISK_USAGE_PATHS.split(","):
+        usage = psutil.disk_usage(path)
+
+        result[f"disk_usage_{path}_total"] = usage.total
+        result[f"disk_usage_{path}_used"] = usage.used
+        result[f"disk_usage_{path}_free"] = usage.free
+        result[f"disk_usage_{path}_percent"] = usage.percent
+
+    return result
 
 
 def get_memory():
@@ -101,6 +118,7 @@ def get_metics():
         "memory": get_memory(),
         "cpu": get_cpu(),
         "temperature": get_temperature(),
+        "disk_usage": get_disk_usage(),
     }
 
 
@@ -128,6 +146,10 @@ def post_metrics(client: InfluxDBClient, metrics: dict, hostname: str):
     for name, measurement in metrics["temperature"].items():
         json_body[0]["fields"][name] = measurement
 
+    # Same for disk usage
+    for name, measurement in metrics["disk_usage"].items():
+        json_body[0]["fields"][name] = measurement
+
     client.write_points(json_body)
 
 
@@ -149,7 +171,8 @@ class InfluxDBVars:
             f"<InfluxDBVars hostname={self.hostname} port={self.port} "
             f"username={self.username} "
             f"password={'***' if self.password else self.password} "
-            f"dbname={self.dbname} ssl={self.ssl}>")
+            f"dbname={self.dbname} ssl={self.ssl}>"
+        )
 
     def valid(self):
         """Returns whether or not we have enough variables defined to attempt to make a connection."""
