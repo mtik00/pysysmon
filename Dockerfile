@@ -33,7 +33,7 @@ ENV PYTHONUNBUFFERED=1 \
     INSTANCE_FOLDER="/usr/src/app/instance"
 
 LABEL maintainer="Timothy McFadden <mtik00@users.noreply.github.com>"
-LABEL app="pythnon-sysmon"
+LABEL app="pysysmon"
 
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y tini \
