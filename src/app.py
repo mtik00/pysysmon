@@ -31,7 +31,14 @@ def parse_arguments(argv=sys.argv):
     parser.add_argument(
         "-d",
         "--debug",
-        help="Only print measurements",
+        help="Set logging level to DEBUG",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-n",
+        "--no-db",
+        help="Don't connect to an Influx database.  Should be used with --debug.",
         action="store_true",
         default=False,
     )
@@ -138,18 +145,18 @@ class DBClient:
     def __init__(
         self,
         db_vars: InfluxDBVars,
-        debug: bool = False,
+        connect: bool = True,
     ):
-        self.debug = debug
+        self.connect = connect
 
-        if (not self.debug) and (not db_vars.valid()):
-            print(str(db_vars))
-            print(
-                "WARNING: InfluxDB connection vars are not valid; enabling debug mode"
-            )
-            self.debug = True
+        if self.connect and (not db_vars.valid()):
+            logger.warn(str(db_vars))
+            logger.error("InfluxDB connection vars are not valid; enabling debug mode"            )
+            self.connect = True
+        elif not self.connect:
+            logger.debug("not connecting to database")
 
-        if not self.debug:
+        if self.connect:
             self.client = InfluxDBClient(
                 host=INFLUXDB_HOST,
                 port=INFLUXDB_PORT,
@@ -161,7 +168,8 @@ class DBClient:
 
     def write_points(self, json_body):
         logger.debug(json_body)
-        if not self.debug:
+
+        if self.connect:
             self.client.write_points(json_body)
 
 
@@ -172,8 +180,9 @@ def main():
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
+    connect = not args.no_db
     db_vars = InfluxDBVars()
-    client = DBClient(db_vars, args.debug)
+    client = DBClient(db_vars, connect=connect)
 
     hostname = APP_HOSTNAME or socket.gethostname()
 
