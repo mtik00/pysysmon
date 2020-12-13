@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import os
 import socket
 import sys
@@ -15,6 +16,14 @@ INFLUXDB_PORT = os.environ.get("INFLUXDB_PORT")
 INFLUXDB_USERNAME = os.environ.get("INFLUXDB_USERNAME")
 INFLUXDB_PASSWORD = os.environ.get("INFLUXDB_PASSWORD")
 INFLUXDB_DBNAME = os.environ.get("INFLUXDB_DBNAME")
+
+logger = logging.getLogger()
+
+
+def initialize_logger():
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s %(message)s", datefmt="%m/%d/%Y %H:%M:%S %Z"
+    )
 
 
 def parse_arguments(argv=sys.argv):
@@ -158,14 +167,17 @@ class DBClient:
             self.client.switch_database(INFLUXDB_DBNAME)
 
     def write_points(self, json_body):
-        if self.debug:
-            print(json_body)
-        else:
+        logger.debug(json_body)
+        if not self.debug:
             self.client.write_points(json_body)
 
 
 def main():
+    initialize_logger()
     args = parse_arguments(sys.argv[1:])
+
+    if args.debug or args.verbose:
+        logger.setLevel(logging.DEBUG)
 
     db_vars = InfluxDBVars()
     client = DBClient(db_vars, args.debug)
