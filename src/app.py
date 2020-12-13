@@ -42,7 +42,13 @@ def parse_arguments(argv=sys.argv):
         action="store_true",
         default=False,
     )
-
+    parser.add_argument(
+        "-p",
+        "--period",
+        help="Period for taking measurements, in seconds.  Default: 10",
+        type=int,
+        default=10
+    )
     return parser.parse_args(sys.argv[1:])
 
 
@@ -199,7 +205,7 @@ def main():
     while True:
         metrics = get_metics()
         post_metrics(client, metrics, hostname)
-        time.sleep(10)
+        time.sleep(args.period)
 
 
 if __name__ == "__main__":
